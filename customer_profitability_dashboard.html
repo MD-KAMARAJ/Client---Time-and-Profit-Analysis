@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="slides-format" content="viewport">
+  <title>Customer Profitability Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style type="text/tailwindcss">
+    @theme {
+      --color-bg: #18181B;
+      --color-bg-deep: #0F0F14;
+      --color-surface: #27272A;
+      --color-text: #F5F5F7;
+      --color-text-secondary: #D4D4D8;
+      --color-text-muted: #A1A1AA;
+      --color-accent-1: #F97316;
+      --color-accent-2: #14B8A6;
+      --color-accent-3: #FEF3C7;
+      --color-glass-bg: rgba(255,255,255,0.06);
+      --color-glass-border: rgba(255,255,255,0.10);
+      --color-vignette: rgba(0,0,0,0.42);
+      --font-display: 'Archivo Black', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+    }
+  </style>
+  <style>
+    :root { --color-bg: #18181B; --color-text: #F5F5F7; --glow-color-rgb: 249,115,22; }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { background: var(--color-bg); margin: 0; }
+    body { font-family: var(--font-body); color: var(--color-text); overflow: hidden; height: 100vh; width: 100vw; }
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--color-bg); display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transform: scale(0.95); transition: opacity 0.7s ease, transform 0.7s ease; pointer-events: none; overflow: hidden; }
+    .slide.active { opacity: 1; transform: scale(1); pointer-events: all; }
+    .slide > .content { position: relative; z-index: 2; width: 100%; max-width: 1180px; padding: clamp(1.25rem, 3vw, 3rem); }
+    .nav-controls { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 16px; z-index: 100; background: rgba(255,255,255,0.08); backdrop-filter: blur(10px); padding: 10px 24px; border-radius: 40px; border: 1px solid rgba(255,255,255,0.12); }
+    .nav-btn { width: 40px; height: 40px; border: none; background: rgba(255,255,255,0.08); color: #F97316; border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .slide-dots { display: flex; gap: 8px; }
+    .slide-dots .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.16); cursor: pointer; transition: background 0.3s, transform 0.3s; }
+    .slide-dots .dot.active { background: #F97316; transform: scale(1.3); }
+    .slide-counter { font-size: 0.8rem; color: #A1A1AA; min-width: 40px; text-align: center; }
+    .reveal { opacity: 0; transform: translateY(20px); }
+    .gradient-mesh { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+    .blob { position: absolute; border-radius: 50%; filter: blur(80px); animation: float-slow 12s ease-in-out infinite; }
+    .blob:nth-child(2) { animation: float-drift 16s ease-in-out infinite; }
+    .blob:nth-child(3) { animation: float-slow 20s ease-in-out infinite reverse; }
+    @keyframes float-slow { 0% { transform: translate(0,0) scale(1);} 25% { transform: translate(60px,-50px) scale(1.12);} 50% { transform: translate(-40px,40px) scale(0.9);} 75% { transform: translate(50px,20px) scale(1.08);} 100% { transform: translate(0,0) scale(1);} }
+    @keyframes float-drift { 0% { transform: translate(0,0) scale(1) rotate(0deg);} 33% { transform: translate(-50px,-60px) scale(1.15) rotate(3deg);} 66% { transform: translate(40px,30px) scale(0.88) rotate(-2deg);} 100% { transform: translate(0,0) scale(1) rotate(0deg);} }
+    @keyframes float { 0%,100% { transform: translateY(0);} 50% { transform: translateY(-15px);} }
+    .slide::before { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); background-repeat: repeat; background-size: 256px 256px; opacity: 0.03; mix-blend-mode: overlay; }
+    .slide::after { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.42) 100%); }
+    .glass { background: rgba(255,255,255,0.06); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); }
+    .section-label { letter-spacing: 0.22em; text-transform: uppercase; color: #A1A1AA; font-size: 0.78rem; }
+    .kpi-card { min-height: 150px; }
+    .bar-row { display: grid; grid-template-columns: 110px 1fr 65px; gap: 12px; align-items: center; }
+    .bar-track { height: 18px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #F97316, #14B8A6); }
+    .hm-grid { display: grid; grid-template-columns: 130px repeat(3, 1fr); gap: 4px; }
+    .hm-cell { padding: 12px 8px; text-align: center; border-radius: 12px; font-size: 0.9rem; font-weight: 700; }
+    .small { font-size: 0.88rem; line-height: 1.35; }
+    .deco-shape { position: absolute; border-radius: 999px; pointer-events: none; z-index: 1; opacity: 0.18; filter: blur(2px); }
+    .mini-table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+    .mini-table th, .mini-table td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.08); text-align: left; }
+    .mini-table th { color: #F97316; font-weight: 700; }
+    .badge { display: inline-block; padding: 6px 12px; border-radius: 999px; background: rgba(249,115,22,0.14); color: #FED7AA; font-size: 0.8rem; }
+    .quote { border-left: 4px solid #F97316; padding-left: 16px; color: #E4E4E7; }
+    .mouse-spotlight { position: fixed; inset: 0; z-index: 99; pointer-events: none; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.2s !important; } }
+  </style>
+</head>
+<body>
+<div class="mouse-spotlight"></div>
+<div class="deck">
+  <div class="slide slide-1 active" data-slide="1">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:520px;height:520px;top:-120px;right:-120px;background:#F97316;opacity:.14"></div>
+      <div class="blob" style="width:320px;height:320px;bottom:-90px;left:-70px;background:#14B8A6;opacity:.12"></div>
+      <div class="blob" style="width:240px;height:240px;top:42%;left:15%;background:#FEF3C7;opacity:.09"></div>
+    </div>
+    <canvas class="particle-canvas" style="position:absolute;inset:0;z-index:1"></canvas>
+    <div class="content text-center">
+      <div class="text-[110px] mb-4 animate-[float_3s_ease-in-out_infinite] reveal">📊</div>
+      <p class="section-label reveal">Customer profitability presentation</p>
+      <h1 class="font-display text-[clamp(2.6rem,6vw,4.8rem)] tracking-tight mb-4 reveal bg-linear-to-br from-accent-1 via-accent-2 to-accent-3 bg-clip-text text-transparent">Customer Profitability Dashboard</h1>
+      <p class="text-[clamp(1rem,1.8vw,1.35rem)] text-text-secondary max-w-3xl mx-auto reveal">A 4-page dashboard that moves from business overview to loss diagnosis and management action.</p>
+      <div class="mt-8 flex justify-center gap-4 reveal">
+        <span class="badge">330M revenue</span>
+        <span class="badge">226M profit</span>
+        <span class="badge">9.3% loss customers</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide slide-2" data-slide="2">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:380px;height:380px;top:-70px;right:-60px;background:#F97316;opacity:.08"></div>
+      <div class="blob" style="width:260px;height:260px;bottom:-50px;left:-30px;background:#14B8A6;opacity:.07"></div>
+    </div>
+    <canvas class="particle-canvas-ambient" style="position:absolute;inset:0;z-index:1"></canvas>
+    <div class="content">
+      <p class="section-label reveal">Story flow</p>
+      <h2 class="font-display text-[clamp(2rem,4vw,3.2rem)] mb-8 reveal">Presentation agenda</h2>
+      <div class="grid grid-cols-2 gap-6">
+        <div class="glass p-6 reveal"><div class="text-2xl font-display text-accent-1 mb-2">01</div><h3 class="text-xl font-bold mb-2">Overview</h3><p class="small text-text-secondary">Business scale, sector profit concentration, and effort-versus-return performance.</p></div>
+        <div class="glass p-6 reveal"><div class="text-2xl font-display text-accent-1 mb-2">02</div><h3 class="text-xl font-bold mb-2">Customer profitability</h3><p class="small text-text-secondary">Top profit clients, worst loss clients, and efficiency by revenue per hour versus cost per hour.</p></div>
+        <div class="glass p-6 reveal"><div class="text-2xl font-display text-accent-1 mb-2">03</div><h3 class="text-xl font-bold mb-2">Loss diagnosis</h3><p class="small text-text-secondary">Loss decomposition by sector, region, project type, and subscription model.</p></div>
+        <div class="glass p-6 reveal"><div class="text-2xl font-display text-accent-1 mb-2">04</div><h3 class="text-xl font-bold mb-2">Action page</h3><p class="small text-text-secondary">Operational burden, churn signals, delays, and actions: retain, reprice, optimize, or exit.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide slide-3" data-slide="3">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:360px;height:360px;top:-90px;right:-80px;background:#14B8A6;opacity:.09"></div>
+      <div class="blob" style="width:260px;height:260px;bottom:-80px;left:-20px;background:#F97316;opacity:.07"></div>
+    </div>
+    <div class="deco-shape" data-speed="0.03" style="width:180px;height:180px;top:120px;right:90px;background:rgba(249,115,22,.16)"></div>
+    <div class="content">
+      <p class="section-label reveal">Executive snapshot</p>
+      <h2 class="font-display text-[clamp(2rem,4vw,3rem)] mb-6 reveal">Page 1: overview</h2>
+      <div class="grid grid-cols-5 gap-4 mb-6">
+        <div class="glass p-4 kpi-card reveal"><p class="text-text-muted text-sm">Total Revenue</p><p class="text-4xl font-display mt-4 text-accent-1">330M</p></div>
+        <div class="glass p-4 kpi-card reveal"><p class="text-text-muted text-sm">Employee Hours</p><p class="text-4xl font-display mt-4 text-accent-1">104K</p></div>
+        <div class="glass p-4 kpi-card reveal"><p class="text-text-muted text-sm">Profit</p><p class="text-4xl font-display mt-4 text-accent-1">226M</p></div>
+        <div class="glass p-4 kpi-card reveal"><p class="text-text-muted text-sm">Average Profit %</p><p class="text-4xl font-display mt-4 text-accent-1">0.55</p></div>
+        <div class="glass p-4 kpi-card reveal"><p class="text-text-muted text-sm">Loss % of Customer</p><p class="text-4xl font-display mt-4 text-accent-1">0.093</p></div>
+      </div>
+      <div class="grid grid-cols-[1.05fr_0.95fr] gap-6">
+        <div class="glass p-6 reveal">
+          <h3 class="text-xl font-bold mb-4">Profit by sector</h3>
+          <div class="space-y-3">
+            <div class="bar-row"><span>Retail</span><div class="bar-track"><div class="bar-fill" data-width="100" style="width:100%"></div></div><span>49M</span></div>
+            <div class="bar-row"><span>Finance</span><div class="bar-track"><div class="bar-fill" data-width="94" style="width:94%"></div></div><span>46M</span></div>
+            <div class="bar-row"><span>Manufact.</span><div class="bar-track"><div class="bar-fill" data-width="92" style="width:92%"></div></div><span>45M</span></div>
+            <div class="bar-row"><span>Healthcare</span><div class="bar-track"><div class="bar-fill" data-width="88" style="width:88%"></div></div><span>43M</span></div>
+            <div class="bar-row"><span>IT</span><div class="bar-track"><div class="bar-fill" data-width="86" style="width:86%"></div></div><span>42M</span></div>
+          </div>
+        </div>
+        <div class="glass p-6 reveal">
+          <h3 class="text-xl font-bold mb-4">Key message</h3>
+          <ul class="space-y-3 text-text-secondary small">
+            <li>Profit is concentrated in a few sectors rather than evenly distributed.</li>
+            <li>Support, implementation, and consulting perform differently across regions.</li>
+            <li>Higher employee hours do not always convert into higher profit.</li>
+            <li>This suggests pricing and delivery efficiency vary by segment.</li>
+          </ul>
+          <p class="quote mt-5 small reveal">Page 1 gives the business picture: where profit comes from, how work effort is distributed, and whether some sectors perform structurally better than others.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide slide-4" data-slide="4">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:360px;height:360px;top:-70px;right:-80px;background:#F97316;opacity:.08"></div>
+      <div class="blob" style="width:230px;height:230px;bottom:-60px;left:-30px;background:#14B8A6;opacity:.07"></div>
+    </div>
+    <div class="content">
+      <p class="section-label reveal">Client performance</p>
+      <h2 class="font-display text-[clamp(2rem,4vw,3rem)] mb-6 reveal">Page 2: customer profitability</h2>
+      <div class="grid grid-cols-2 gap-6">
+        <div class="glass p-6 reveal">
+          <h3 class="text-xl font-bold mb-4">Top profitable vs top loss clients</h3>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <p class="text-sm text-text-muted mb-2">Top profitable</p>
+              <table class="mini-table">
+                <tr><th>Client</th><th>Profit</th></tr>
+                <tr><td>183</td><td>0.58M</td></tr>
+                <tr><td>633</td><td>0.58M</td></tr>
+                <tr><td>158</td><td>0.57M</td></tr>
+                <tr><td>326</td><td>0.57M</td></tr>
+                <tr><td>893</td><td>0.56M</td></tr>
+              </table>
+            </div>
+            <div>
+              <p class="text-sm text-text-muted mb-2">Top loss</p>
+              <table class="mini-table">
+                <tr><th>Client</th><th>Loss</th></tr>
+                <tr><td>748</td><td>-88K</td></tr>
+                <tr><td>871</td><td>-93K</td></tr>
+                <tr><td>690</td><td>-94K</td></tr>
+                <tr><td>492</td><td>-101K</td></tr>
+                <tr><td>623</td><td>-136K</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="glass p-6 reveal">
+          <h3 class="text-xl font-bold mb-4">Efficiency logic</h3>
+          <ul class="space-y-3 text-text-secondary small">
+            <li>High-value clients are strong not only in absolute profit but also in margin quality.</li>
+            <li>The detailed table links revenue, hours, profit, revenue per hour, cost per hour, and margin.</li>
+            <li>The cost-versus-revenue scatter reveals accounts where service cost is too high relative to earning efficiency.</li>
+            <li>A high-revenue client can still destroy value if operating cost per hour is too high.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="grid grid-cols-3 gap-4 mt-6">
+        <div class="glass p-4 reveal"><p class="text-text-muted text-sm">Revenue per hour lens</p><p class="text-2xl font-display mt-2 text-accent-2">5.43K</p><p class="small text-text-secondary mt-2">Portfolio-level average shown in the table total row.</p></div>
+        <div class="glass p-4 reveal"><p class="text-text-muted text-sm">Cost per hour lens</p><p class="text-2xl font-display mt-2 text-accent-2">1.71K</p><p class="small text-text-secondary mt-2">Used to separate efficient accounts from over-serviced ones.</p></div>
+        <div class="glass p-4 reveal"><p class="text-text-muted text-sm">Presentation takeaway</p><p class="small text-text-secondary mt-3">Page 2 identifies which clients are profitable, which are loss-making, and whether the problem is pricing, cost, or delivery effort.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide slide-5" data-slide="5">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:390px;height:390px;top:-80px;right:-70px;background:#14B8A6;opacity:.09"></div>
+      <div class="blob" style="width:260px;height:260px;bottom:-70px;left:-40px;background:#F97316;opacity:.08"></div>
+    </div>
+    <canvas class="particle-canvas-ambient" style="position:absolute;inset:0;z-index:1"></canvas>
+    <div class="content">
+      <p class="section-label reveal">Root cause</p>
+      <h2 class="font-display text-[clamp(2rem,4vw,3rem)] mb-6 reveal">Page 3: loss diagnosis</h2>
+      <div class="grid grid-cols-[1.1fr_0.9fr] gap-6">
+        <div class="glass p-6 reveal">
+          <h3 class="text-xl font-bold mb-4">Loss concentration</h3>
+          <div class="space-y-3">
+            <div class="bar-row"><span>Finance</span><div class="bar-track"><div class="bar-fill" data-width="100" style="width:100%"></div></div><span>-963K</span></div>
+            <div class="bar-row"><span>IT</span><div class="bar-track"><div class="bar-fill" data-width="90" style="width:90%"></div></div><span>-862K</span></div>
+            <div class="bar-row"><span>Healthcare</span><div class="bar-track"><div class="bar-fill" data-width="88" style="width:88%"></div></div><span>-847K</span></div>
+            <div class="bar-row"><span>Retail</span><div class="bar-track"><div class="bar-fill" data-width="77" style="width:77%"></div></div><span>-737K</span></div>
+          </div>
+          <p class="small text-text-secondary mt-4">The decomposition tree starts from total loss of -4.41M and drills into sector, region, project type, and subscription type.</p>
+        </div>
+        <div class="glass p-6 reveal">
+          <h3 class="text-xl font-bold mb-4">Loss heatmap</h3>
+          <div class="hm-grid">
+            <div></div><div class="text-center text-sm text-text-muted">Basic</div><div class="text-center text-sm text-text-muted">Premium</div><div class="text-center text-sm text-text-muted">Standard</div>
+            <div class="flex items-center text-sm text-text-secondary">Finance</div><div class="hm-cell" style="background:radial-gradient(circle at 35% 35%, rgba(239,68,68,.7), rgba(239,68,68,.25));">-7.16</div><div class="hm-cell" style="background:radial-gradient(circle at 35% 35%, rgba(34,197,94,.55), rgba(34,197,94,.18));">1.99</div><div class="hm-cell" style="background:radial-gradient(circle at 35% 35%, rgba(239,68,68,.55), rgba(239,68,68,.18));">-2.88</div>
+            <div class="flex items-center text-sm text-text-secondary">Healthcare</div><div class="hm-cell" style="background:radial-gradient(circle at 35% 35%, rgba(239,68,68,.45), rgba(239,68,68,.15));">-3.12</div><div class="hm-cell" style="background:radial-gradient(circle at 35% 35%, rgba(239,68,68,.55), rgba(239,68,68,.18));">-4.60</div><div class="hm-cell" style="background:radial-gradient(circle at 35% 35%, rgba(239,68,68,.4), rgba(239,68,68,.12));">-2.81</div>
+            <div class="flex items-center text-sm text-text-secondary">IT</div><div class="hm-cell" style="background:radial-gradient(circle at 35% 35%, rgba(239,68,68,.6), rgba(239,68,68,.2));">-4.69</div><div class="hm-cell" style="background:radial-gradient(circle at 35% 35%, rgba(34,197,94,.5), rgba(34,197,94,.16));">3.41</div><div class="hm-cell" style="background:radial-gradient(circle at 35% 35%, rgba(255,255,255,.14), rgba(255,255,255,.05));">-</div>
+            <div class="flex items-center text-sm text-text-secondary">Manufact.</div><div class="hm-cell" style="background:radial-gradient(circle at 35% 35%, rgba(239,68,68,.35), rgba(239,68,68,.12));">-2.93</div><div class="hm-cell" style="background:radial-gradient(circle at 35% 35%, rgba(239,68,68,.4), rgba(239,68,68,.12));">-3.07</div><div class="hm-cell" style="background:radial-gradient(circle at 35% 35%, rgba(239,68,68,.7), rgba(239,68,68,.25));">-6.26</div>
+          </div>
+        </div>
+      </div>
+      <div class="grid grid-cols-3 gap-4 mt-6">
+        <div class="glass p-4 reveal"><p class="text-text-muted text-sm">Loss count leader</p><p class="text-2xl font-display mt-2 text-accent-1">Finance: 23</p></div>
+        <div class="glass p-4 reveal"><p class="text-text-muted text-sm">Key regional issue</p><p class="small text-text-secondary mt-3">North is the heaviest visible loss region in the current drill path.</p></div>
+        <div class="glass p-4 reveal"><p class="text-text-muted text-sm">Business meaning</p><p class="small text-text-secondary mt-3">Losses are not random. They cluster in certain sector-region-project combinations, which suggests structural pricing or delivery problems.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide slide-6" data-slide="6">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:380px;height:380px;top:-80px;right:-80px;background:#F97316;opacity:.08"></div>
+      <div class="blob" style="width:230px;height:230px;bottom:-60px;left:-40px;background:#14B8A6;opacity:.07"></div>
+    </div>
+    <div class="content">
+      <p class="section-label reveal">Decision page</p>
+      <h2 class="font-display text-[clamp(2rem,4vw,3rem)] mb-6 reveal">Page 4: action page</h2>
+      <div class="grid grid-cols-[1.05fr_0.95fr] gap-6">
+        <div class="glass p-6 reveal">
+          <h3 class="text-xl font-bold mb-4">Action signals</h3>
+          <table class="mini-table">
+            <tr><th>Signal</th><th>Current read</th></tr>
+            <tr><td>Highest delay sector</td><td>Retail - 47.08 days</td></tr>
+            <tr><td>Second highest delay</td><td>Manufacturing - 46.94 days</td></tr>
+            <tr><td>Loss client renewal</td><td>61.29% marked No</td></tr>
+            <tr><td>High churn example</td><td>Client 748 scored 100</td></tr>
+            <tr><td>Escalation pattern</td><td>More escalations often align with deeper losses</td></tr>
+          </table>
+        </div>
+        <div class="glass p-6 reveal">
+          <h3 class="text-xl font-bold mb-4">How management should act</h3>
+          <div class="space-y-4">
+            <div class="glass p-4"><p class="font-bold text-accent-1">Retain</p><p class="small text-text-secondary">Profitable or strategically important clients with healthy renewal and manageable service load.</p></div>
+            <div class="glass p-4"><p class="font-bold text-accent-1">Reprice</p><p class="small text-text-secondary">Clients with good strategic value but weak margin because effort or delays are too high.</p></div>
+            <div class="glass p-4"><p class="font-bold text-accent-1">Optimize</p><p class="small text-text-secondary">Accounts where escalations, duration, or resources are inflating cost beyond revenue.</p></div>
+            <div class="glass p-4"><p class="font-bold text-accent-1">Exit</p><p class="small text-text-secondary">High-loss, low-renewal, high-churn clients with no realistic recovery path.</p></div>
+          </div>
+        </div>
+      </div>
+      <p class="quote mt-6 reveal">Page 4 converts analysis into action by combining profit, delays, escalations, renewal status, satisfaction, and churn risk to decide what should happen next for each client.</p>
+    </div>
+  </div>
+
+  <div class="slide slide-7" data-slide="7">
+    <div class="gradient-mesh">
+      <div class="blob" style="width:420px;height:420px;top:-90px;right:-90px;background:#14B8A6;opacity:.1"></div>
+      <div class="blob" style="width:280px;height:280px;bottom:-80px;left:-50px;background:#F97316;opacity:.09"></div>
+      <div class="blob" style="width:220px;height:220px;top:50%;left:20%;background:#FEF3C7;opacity:.07"></div>
+    </div>
+    <canvas class="particle-canvas" style="position:absolute;inset:0;z-index:1"></canvas>
+    <div class="content text-center">
+      <p class="section-label reveal">Closing</p>
+      <h2 class="font-display text-[clamp(2.3rem,5vw,4.2rem)] mb-5 reveal bg-linear-to-br from-accent-1 via-accent-2 to-accent-3 bg-clip-text text-transparent">Final takeaway</h2>
+      <p class="text-xl text-text-secondary max-w-4xl mx-auto reveal">This dashboard is decision-driven: Page 1 shows where profit comes from, Page 2 shows which clients create or destroy value, Page 3 explains why losses happen, and Page 4 tells management what to do next.</p>
+      <div class="grid grid-cols-4 gap-4 mt-8 reveal">
+        <div class="glass p-4"><p class="font-display text-2xl text-accent-1">1</p><p class="small text-text-secondary mt-2">Overview</p></div>
+        <div class="glass p-4"><p class="font-display text-2xl text-accent-1">2</p><p class="small text-text-secondary mt-2">Customer profitability</p></div>
+        <div class="glass p-4"><p class="font-display text-2xl text-accent-1">3</p><p class="small text-text-secondary mt-2">Loss diagnosis</p></div>
+        <div class="glass p-4"><p class="font-display text-2xl text-accent-1">4</p><p class="small text-text-secondary mt-2">Action</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="nav-controls">
+  <button class="nav-btn" onclick="changeSlide(-1)">&#8249;</button>
+  <div class="slide-dots" id="dots"></div>
+  <button class="nav-btn" onclick="changeSlide(1)">&#8250;</button>
+  <span class="slide-counter" id="counter">1 / 7</span>
+</div>
+
+<script>
+let current = 1;
+const total = document.querySelectorAll('.slide').length;
+const dotsContainer = document.getElementById('dots');
+const counter = document.getElementById('counter');
+for (let i = 1; i <= total; i++) { const dot = document.createElement('div'); dot.className = 'dot' + (i === 1 ? ' active' : ''); dot.onclick = () => goToSlide(i); dotsContainer.appendChild(dot); }
+function goToSlide(n) { const prev = document.querySelector('.slide.active'); const next = document.querySelector(`.slide[data-slide="${n}"]`); if (prev) prev.classList.remove('active'); if (next) { next.classList.add('active'); animateSlide(next); } current = n; updateNav(); }
+function changeSlide(dir) { let next = current + dir; if (next < 1) next = total; if (next > total) next = 1; goToSlide(next); }
+function updateNav() { document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i + 1 === current)); counter.textContent = current + ' / ' + total; }
+document.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); changeSlide(1);} if (e.key === 'ArrowLeft') { e.preventDefault(); changeSlide(-1);} });
+let touchStartX = 0;
+document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+document.addEventListener('touchend', (e) => { const diff = touchStartX - e.changedTouches[0].clientX; if (Math.abs(diff) > 50) changeSlide(diff > 0 ? 1 : -1); });
+function animateSlide(slide) {
+  slide.querySelectorAll('.reveal').forEach((el, i) => {
+    el.style.transition = 'none'; el.style.opacity = '0'; el.style.transform = 'translateY(20px)'; el.offsetHeight;
+    const delay = i * 0.08;
+    el.style.transition = `opacity 0.35s ease ${delay}s, transform 0.35s ease ${delay}s`;
+    el.style.opacity = '1'; el.style.transform = 'translateY(0px)';
+  });
+  animateSlideEffects(slide);
+}
+function animateSlideEffects(slide) {
+  slide.querySelectorAll('.bar-fill:not(.fill-init)').forEach((bar, i) => { bar.classList.add('fill-init'); const w = bar.dataset.width || bar.style.width; bar.style.width = '0%'; bar.style.transition = `width 0.6s ease ${i * 0.08}s`; bar.offsetHeight; bar.style.width = typeof w === 'string' && w.includes('%') ? w : `${w}%`; });
+}
+document.addEventListener('mousemove', (e) => { const spotlight = document.querySelector('.mouse-spotlight'); if (spotlight) spotlight.style.background = `radial-gradient(600px circle at ${e.clientX}px ${e.clientY}px, rgba(249,115,22,0.06), transparent 40%)`; });
+(function() { let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2; const cx = window.innerWidth / 2, cy = window.innerHeight / 2; document.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; }); (function tick() { const ox = (mouseX - cx) / cx, oy = (mouseY - cy) / cy; document.querySelectorAll('.deco-shape').forEach(shape => { const speed = parseFloat(shape.dataset.speed) || 0.03; shape.style.transform = `translate(${ox * speed * 100}px, ${oy * speed * 100}px)`; }); requestAnimationFrame(tick); })(); })();
+window.initParticles = function(canvas, options) {
+  if (!canvas) return; const ctx = canvas.getContext('2d'); canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; const interactive = options.interactive !== false; const count = options.count || (interactive ? 55 : 18); let mx = -1000, my = -1000; const particles = Array.from({ length: count }, () => ({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3, size: Math.random() * 2.5 + 0.8, alpha: Math.random() * 0.35 + 0.1 })); if (interactive) { canvas.addEventListener('mousemove', (e) => { const rect = canvas.getBoundingClientRect(); mx = e.clientX - rect.left; my = e.clientY - rect.top; }); canvas.addEventListener('mouseleave', () => { mx = -1000; my = -1000; }); }
+  (function animate() { ctx.clearRect(0, 0, canvas.width, canvas.height); particles.forEach(p => { if (interactive) { const dx = p.x - mx, dy = p.y - my, dist = Math.sqrt(dx * dx + dy * dy); if (dist < 120) { const force = (120 - dist) / 120 * 2; p.vx += (dx / (dist || 1)) * force * 0.1; p.vy += (dy / (dist || 1)) * force * 0.1; } } p.vx *= 0.98; p.vy *= 0.98; p.x += p.vx; p.y += p.vy; if (p.x < 0) p.x = canvas.width; if (p.x > canvas.width) p.x = 0; if (p.y < 0) p.y = canvas.height; if (p.y > canvas.height) p.y = 0; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fillStyle = `rgba(249,115,22,${p.alpha})`; ctx.fill(); }); requestAnimationFrame(animate); })();
+};
+document.querySelectorAll('.particle-canvas').forEach(c => window.initParticles(c, { interactive: true, count: 55 }));
+document.querySelectorAll('.particle-canvas-ambient').forEach(c => window.initParticles(c, { interactive: false, count: 18 }));
+try { animateSlide(document.querySelector('.slide.active')); } catch(e) { console.warn(e); }
+</script>
+</body>
+</html>
